@@ -1,16 +1,42 @@
 #!/bin/bash
 
-# Fixes microsoft line endings
+# Fixes microsoft (CRLF) and classic Mac (CR) line endings, in place.
+# Ensures the file ends in exactly one newline. Blank lines are left alone.
 
-# Choose which sed to use (gsed: brew install gnu-sed)
-if [ "$(uname -s)" == "Darwin" ] # If the system is Mac OS X
-then
-   mysed="gsed"
-else
-   mysed="sed"
+set -uo pipefail
+
+if [ $# -eq 0 ]; then
+    echo "Fixes microsoft (CRLF) and classic Mac (CR) line endings, in place"
+    echo "Usage: $0 <files>"
+    exit 0
 fi
 
-dos2unix $1
-$mysed -i "s/\r/\n/g" $1
-echo >> $1
-$mysed -i '/^$/d' $1
+status=0
+
+for f in "$@"; do
+    if [ ! -f "$f" ]; then
+        echo "$f: not a regular file" >&2
+        status=1
+        continue
+    fi
+
+    tmp=$(mktemp) || exit 1
+
+    if ! perl -pe 's/\r\n/\n/g; s/\r/\n/g' "$f" > "$tmp"; then
+        echo "$f: conversion failed" >&2
+        rm -f "$tmp"
+        status=1
+        continue
+    fi
+
+    # Add a trailing newline if the last byte isn't one
+    if [ -s "$tmp" ] && [ -n "$(tail -c1 "$tmp")" ]; then
+        echo >> "$tmp"
+    fi
+
+    # Copy back rather than mv, so the file keeps its permissions
+    cat "$tmp" > "$f"
+    rm -f "$tmp"
+done
+
+exit $status

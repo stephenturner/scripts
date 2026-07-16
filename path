@@ -4,12 +4,21 @@
 help="Prints full path of supplied arguments"
 usage="Usage: $0 <files>"
 if [ $# -eq 0 ] ; then
-    echo -e "\n$help\n$usage\n" 
+    printf '\n%s\n%s\n\n' "$help" "$usage"
     exit 0
 fi
 
 # Print full path of all arguments
+status=0
 for i in "$@"
 do
-	echo $(cd $(dirname "$i") && pwd)/$(basename "$i")
+	dir=$(dirname -- "$i")
+	if ! abs=$(cd "$dir" 2>/dev/null && pwd); then
+		echo "$i: no such directory" >&2
+		status=1
+		continue
+	fi
+	printf '%s/%s\n' "$abs" "$(basename -- "$i")"
 done
+
+exit $status

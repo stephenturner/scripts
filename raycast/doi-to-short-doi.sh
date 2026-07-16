@@ -2,7 +2,7 @@
 
 # Required parameters:
 # @raycast.schemaVersion 1
-# @raycast.title DOI to ShortDOI
+# @raycast.title DOI to Short DOI
 # @raycast.mode silent
 
 # Optional parameters:

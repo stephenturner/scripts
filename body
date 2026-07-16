@@ -4,6 +4,13 @@
 # $ echo -e "header\n1\n5\n4\n7\n3" | body sort
 # See http://unix.stackexchange.com/a/11859
 
-IFS= read -r header
+IFS= read -r header || exit 0
 printf '%s\n' "$header"
-eval $@
+
+# A single argument is eval'd, so shell syntax works: body "sort | head -2"
+# Anything else runs directly, so quoted arguments survive: body grep "foo bar"
+if [ $# -eq 1 ]; then
+    eval "$1"
+else
+    "$@"
+fi
