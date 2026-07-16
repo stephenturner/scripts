@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# Required parameters:
+# @raycast.schemaVersion 1
+# @raycast.title Bold Text on Clipboard
+# @raycast.mode silent
+
+# Optional parameters:
+# @raycast.icon 🤖
+# @raycast.packageName Academic
+
+# Documentation:
+# @raycast.description Convert text on clipboard to bold Unicode
+# @raycast.author stephen_turner
+# @raycast.authorURL https://raycast.com/stephen_turner
+
+# Only works on MacOS
+if [ "$(uname)" != "Darwin" ]; then
+    echo "macOS only (requires pbpaste/pbcopy)"
+    exit 1
+fi
+
 # Function to convert text to bold Unicode
 convert_to_bold() {
     local input="$1"
@@ -44,7 +64,7 @@ input_text=$(pbpaste)
 bold_text=$(convert_to_bold "$input_text")
 
 # Copy the bold text back to the clipboard
-echo "$bold_text" | pbcopy
+printf '%s' "$bold_text" | pbcopy
 
 # Notify the user
 echo "Converted text copied back to clipboard."
