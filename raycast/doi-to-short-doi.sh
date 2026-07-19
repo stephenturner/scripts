@@ -47,6 +47,9 @@ if [ -z "$shortdoi" ]; then
     exit 1
 fi
 
+# Strip the leading "10/" so the URL is doi.org/hcb22v not doi.org/10/hcb22v
+shortdoi=${shortdoi#10/}
+
 # Put it on the clipboard
 url="https://doi.org/$shortdoi"
 printf '%s' "$url" | pbcopy
