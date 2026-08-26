@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+# Move something to the trash instead of permanent delete
+
+if [[ "$(uname)" == 'Darwin' ]]; then
+	for arg in "$@"; do
+		file="$(realpath "$arg")"
+		/usr/bin/osascript -e "tell application \"Finder\" to delete POSIX file \"$file\"" > /dev/null
+	done
+else
+	gio trash "$@"
+fi

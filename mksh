@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+# Create a new executable shell script (with the usual `set -euo pipefail`
+# preamble) and open it in $EDITOR.
+
+if [ ! $# -eq 1 ]; then
+	echo 'mksh takes one argument' 1>&2
+	exit 1
+elif [ -e "$1" ]; then
+	echo "$1 already exists" 1>&2
+	exit 1
+fi
+
+echo '#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+' > "$1"
+
+chmod u+x "$1"
+
+if [ -n "${EDITOR:-}" ]; then
+	"$EDITOR" "$1"
+fi
