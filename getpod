@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+# Downloads audio as an mp3, sized for listening rather than archiving.
+# Takes one or more video or playlist URLs.
+# Grabs the worst audio stream on purpose: speech doesn't need the good one.
+# Chapters and the thumbnail are embedded so podcast players show them.
+
+yt-dlp \
+  --embed-chapters \
+  --embed-thumbnail \
+  --extract-audio \
+  --audio-format mp3 \
+  -f worstaudio \
+  "$@"

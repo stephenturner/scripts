@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+# Download video from YouTube (or anything else yt-dlp supports).
+# Takes one or more video or playlist URLs.
+# Prefers h264 video and m4a audio so the result plays anywhere.
+# Playlists download into the current directory, so cd somewhere sensible first.
+# Pass --subs to embed English subtitles, falling back to the auto-generated ones.
+
+subs=()
+args=()
+
+for arg in "$@"
+do
+  if [ "$arg" = '--subs' ]; then
+    subs=(--write-subs --write-auto-subs --sub-langs 'en.*' --embed-subs)
+  else
+    args+=("$arg")
+  fi
+done
+
+yt-dlp \
+  -S vcodec:h264,res,acodec:m4a \
+  --merge-output-format mp4 \
+  --embed-chapters \
+  --embed-metadata \
+  --embed-thumbnail \
+  ${subs[@]+"${subs[@]}"} \
+  ${args[@]+"${args[@]}"}

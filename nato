@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -f
+
+# Spells out its arguments in the NATO phonetic alphabet, one word per line.
+# Characters outside the table (punctuation, accents) are printed as-is.
+
+chars=abcdefghijklmnopqrstuvwxyz0123456789
+words=(
+  Alfa Bravo Charlie Delta Echo Foxtrot Golf Hotel India Juliett
+  Kilo Lima Mike November Oscar Papa Quebec Romeo Sierra Tango
+  Uniform Victor Whiskey X-ray Yankee Zulu
+  Zero One Two Three Four Five Six Seven Eight Nine
+  )
+
+for word in $(printf '%s ' "$@" | tr '[:upper:]' '[:lower:]'); do
+    spelled=()
+    for (( i = 0; i < ${#word}; i++ )); do
+        char=${word:i:1}
+        rest=${chars%%"$char"*}
+        if [ "$rest" = "$chars" ]; then
+            spelled+=("$char")
+        else
+            spelled+=("${words[${#rest}]}")
+        fi
+    done
+    echo "${spelled[@]}"
+done

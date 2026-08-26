@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -e
+set -u
+
+# Prints a single numbered line from its input. E.g.:
+# $ line 3 notes.txt
+# With no file arguments it reads stdin, so `history | line 42` works.
+# Several files are treated as one stream, not one line from each.
+
+lineno="$1"; shift
+sed -n "${lineno}p" "$@"
