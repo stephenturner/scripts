@@ -11,9 +11,9 @@ the relationship that points each slide at its notes page. That is the same
 thing PowerPoint's own "Remove presentation notes" inspector does.
 
 Usage:
-  denote.py deck.pptx
-  denote.py *.pptx
-  denote.py -f deck.pptx     # overwrite an existing _.pptx
+  denote deck.pptx
+  denote *.pptx
+  denote -f deck.pptx     # overwrite an existing _.pptx
 """
 
 import os
@@ -88,7 +88,7 @@ def main(argv):
             paths.append(arg)
 
     if not paths:
-        sys.stderr.write("usage: denote.py [-f] file.pptx [file.pptx ...]\n")
+        sys.stderr.write("usage: denote [-f] file.pptx [file.pptx ...]\n")
         return 2
 
     failed = False

@@ -7,10 +7,10 @@ set -o pipefail
 # Requires: ffmpeg built with libx264 and libfreetype
 #
 # Examples:
-#   ./make-countdown-timer.sh 5m                     # 5:00 -> countdown-5m00s.mp4
-#   ./make-countdown-timer.sh 90 --beep              # 1:30 with a beep at zero
-#   ./make-countdown-timer.sh 3:00 --label "Pair up" -o exercise1.mp4
-#   ./make-countdown-timer.sh 10m --size 1280x720    # fixed frame instead of a fitted one
+#   ./mkcountdown 5m                     # 5:00 -> countdown-5m00s.mp4
+#   ./mkcountdown 90 --beep              # 1:30 with a beep at zero
+#   ./mkcountdown 3:00 --label "Pair up" -o exercise1.mp4
+#   ./mkcountdown 10m --size 1280x720    # fixed frame instead of a fitted one
 
 set -euo pipefail
 
@@ -30,10 +30,10 @@ PAD=8           # margin around the digits, percent of digit height, fit mode on
 FILL=94         # percent of a fixed frame the digits should fill
 FONT_FRAC=0     # if set, skip measuring: numeral size = this percent of frame height
 
-die() { printf 'make-countdown-timer.sh: %s\n' "$1" >&2; exit 1; }
+die() { printf 'mkcountdown: %s\n' "$1" >&2; exit 1; }
 
 usage() {
-  sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '6,13p' "$0" | sed 's/^# \{0,1\}//'
   cat <<'EOF'
 
 Options:

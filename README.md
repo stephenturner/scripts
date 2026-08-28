@@ -8,14 +8,14 @@ Small command-line utilities I use, plus a few [Raycast](https://www.raycast.com
 | --- | --- |
 | `body` | Runs a command on everything except the first line (e.g. `echo -e "header\n3\n1" \| body sort`) |
 | `copy` | Copies stdin to the system clipboard |
-| `denote.py` | Copies a .pptx to `_.pptx` with all speaker notes stripped, everything else untouched |
+| `denote` | Copies a .pptx to `_.pptx` with all speaker notes stripped, everything else untouched |
 | `extract` | Unpacks any archive (zip, tar.gz, rar, 7z, ...) based on its extension |
 | `fixms` | Fixes Windows (CRLF) and classic Mac (CR) line endings in place |
 | `getpod` | Downloads a video's audio as an mp3 with chapters and cover art, at podcast-grade bitrate |
 | `header` | Prints a delimited file's header row, one numbered column per line (`header samples.csv`) |
 | `line` | Prints one numbered line of a file or stdin (e.g. `line 3 notes.txt`) |
-| `make-html-index.sh` | Prints HTML linking every file under the current directory (`make-html-index.sh > index.html`) |
-| `make-countdown-timer.sh` | Creates a small .mp4 file with a countdown timer ending in an audible beep. |
+| `mkcountdown` | Creates a small .mp4 file with a countdown timer ending in an audible beep. |
+| `mkindex` | Prints HTML linking every file under the current directory (`mkindex > index.html`) |
 | `mksh` | Scaffolds a new executable shell script and opens it in `$EDITOR` |
 | `nato` | Spells its arguments out in the NATO phonetic alphabet |
 | `pasta` | Prints the system clipboard's contents |
@@ -29,7 +29,7 @@ Small command-line utilities I use, plus a few [Raycast](https://www.raycast.com
 
 Put this directory on your `PATH`, or symlink individual scripts somewhere that already is.
 
-Most of these need nothing beyond what macOS ships with. `getpod` and `ytdl` need [yt-dlp](https://github.com/yt-dlp/yt-dlp), `tomp3` and `make-countdown-timer.sh` need [ffmpeg](https://ffmpeg.org), and `extract` calls `unrar`, `7z` or `cabextract` when it runs into those formats.
+Most of these need nothing beyond what macOS ships with. `getpod` and `ytdl` need [yt-dlp](https://github.com/yt-dlp/yt-dlp), `tomp3` and `mkcountdown` need [ffmpeg](https://ffmpeg.org), and `extract` calls `unrar`, `7z` or `cabextract` when it runs into those formats.
 
 ## Raycast scripts
 
