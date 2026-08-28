@@ -7,8 +7,10 @@ These are scripts that work well with [Raycast](https://www.raycast.com).
 | `doi-to-short-doi.sh` | DOI to Short DOI | Turns a DOI or doi.org link on the clipboard into a [shortdoi.org](https://shortdoi.org) link |
 | `doi-to-bibtex.sh` | DOI to BiBTeX | Fetches the BibTeX record for a DOI or doi.org link on the clipboard |
 | `markdown-to-rtf.sh` | Markdown to RTF | Renders clipboard Markdown as RTF, ready to paste into Word or email |
+| `unsmart.py` | Unsmart Text | Replaces curly quotes, dashes, ligatures and other Unicode punctuation with plain ASCII |
+| `word-count.py` | Word Count | Counts the words and characters of the clipboard, for when there's a limit |
 
-Each one reads the clipboard and writes its result back to the clipboard. All are macOS only (`pbpaste`/`pbcopy`), and `markdown-to-rtf.sh` also needs [pandoc](https://pandoc.org).
+Each one reads the clipboard and writes its result back to the clipboard, except `word-count.py`, which only reports. All are macOS only (`pbpaste`/`pbcopy`), and `markdown-to-rtf.sh` also needs [pandoc](https://pandoc.org).
 
 ## Setup
 
