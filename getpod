@@ -8,6 +8,14 @@ set -o pipefail
 # Grabs the worst audio stream on purpose: speech doesn't need the good one.
 # Chapters and the thumbnail are embedded so podcast players show them.
 
+# Print help if no arguments
+help='Downloads a video'"'"'s audio as an mp3 with chapters and cover art'
+usage="Usage: $0 <urls>"
+if [ $# -eq 0 ]; then
+    printf '\n%s\n%s\n\n' "$help" "$usage"
+    exit 0
+fi
+
 yt-dlp \
   --embed-chapters \
   --embed-thumbnail \
