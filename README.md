@@ -29,6 +29,8 @@ Small command-line utilities I use, plus a few [Raycast](https://www.raycast.com
 
 Put this directory on your `PATH`, or symlink individual scripts somewhere that already is.
 
+Most of these need nothing beyond what macOS ships with. `getpod` and `ytdl` need [yt-dlp](https://github.com/yt-dlp/yt-dlp), `tomp3` and `make-countdown-timer.sh` need [ffmpeg](https://ffmpeg.org), and `extract` calls `unrar`, `7z` or `cabextract` when it runs into those formats.
+
 ## Raycast scripts
 
 The `raycast/` directory has scripts for shortening DOIs, fetching BibTeX from a DOI, stripping tracking parameters off a URL, converting Markdown to RTF, bolding clipboard text with Unicode, replacing curly quotes and dashes with ASCII, and counting the words on the clipboard. They're macOS only. See [raycast/README.md](raycast/README.md) for setup.
