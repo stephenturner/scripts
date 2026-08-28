@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+# Pulls the audio out of video files into mono mp3s sized for speech. E.g.:
+# $ tomp3 *.mp4
+# Anything ffmpeg can read works (mov, mkv, m4v), and the output is the
+# input's name with .mp3 in place of its extension, next to the original.
+# Existing mp3s are left alone rather than overwritten, so re-running this
+# on a directory only does the new files.
+
+help='Extracts mono, podcast-quality mp3 audio from video files'
+usage="Usage: $0 <video files>"
+
+# 48k mono at 22.05 kHz is about 21 MB an hour and plenty for talking
+bitrate='48k'
+rate=22050
+
+if [ $# -eq 0 ]; then
+    printf '\n%s\n%s\n\n' "$help" "$usage"
+    exit 0
+fi
+
+if ! hash ffmpeg 2>/dev/null; then
+    echo "$0: ffmpeg is not on your PATH" >&2
+    exit 1
+fi
+
+status=0
+
+for f in "$@"; do
+    if [ ! -f "$f" ]; then
+        echo "$f: not a regular file" >&2
+        status=1
+        continue
+    fi
+
+    out="${f%.*}.mp3"
+
+    if [ "$out" = "$f" ]; then
+        echo "$f: already an mp3, skipping" >&2
+        continue
+    fi
+
+    if [ -e "$out" ]; then
+        echo "$out: already exists, skipping" >&2
+        continue
+    fi
+
+    echo "$f -> $out"
+
+    # -nostdin keeps ffmpeg from swallowing the loop's input
+    if ! ffmpeg -nostdin -hide_banner -loglevel error \
+        -i "$f" \
+        -vn \
+        -codec:a libmp3lame \
+        -ac 1 \
+        -ar "$rate" \
+        -b:a "$bitrate" \
+        "$out"
+    then
+        echo "$f: ffmpeg failed" >&2
+        rm -f "$out"
+        status=1
+    fi
+done
+
+exit $status

@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -e
+set -u
+
+# Lines up a delimited file's columns so you can read it, paging through
+# less with long lines cut off rather than wrapped. E.g.:
+# $ peek results.tsv
+# The delimiter is guessed from the first line: a tab if there's one in it,
+# otherwise a comma. Pass -d to say which (-d ';' or -d $'\t').
+# -n is how many lines to read (default 50; 0 reads the whole file), and
+# -w how wide a field gets before it's truncated (default 30).
+# Quoted CSV fields are unquoted. With no file arguments it reads stdin.
+
+help='Lines up a delimited file into readable columns'
+usage="Usage: $0 [-d delimiter] [-n lines] [-w width] [file]"
+
+delim=''
+maxlines=50
+width=30
+
+while getopts ':d:n:w:h' opt; do
+    case "$opt" in
+        d) delim="$OPTARG" ;;
+        n) maxlines="$OPTARG" ;;
+        w) width="$OPTARG" ;;
+        h) printf '\n%s\n%s\n\n' "$help" "$usage"; exit 0 ;;
+        *) echo "$usage" >&2; exit 1 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+case "$maxlines" in *[!0-9]*|'') echo "$0: -n takes a number" >&2; exit 1 ;; esac
+case "$width" in *[!0-9]*|'') echo "$0: -w takes a number" >&2; exit 1 ;; esac
+if [ "$width" -lt 3 ]; then
+    echo "$0: -w must be at least 3" >&2
+    exit 1
+fi
+
+# No file and nothing piped in: say what this does rather than hang on stdin
+if [ $# -eq 0 ] && [ -t 0 ]; then
+    printf '\n%s\n%s\n\n' "$help" "$usage"
+    exit 0
+fi
+
+prog='
+    use Text::ParseWords;
+
+    my $d = $ENV{delim};
+    my $max = $ENV{maxlines} + 0;
+    my $w = $ENV{width} + 0;
+    my @rows;
+
+    while (my $line = <>) {
+        $line =~ s/^\x{feff}// unless @rows;
+        $line =~ s/\r?\n\z//;
+        $d = ($line =~ /\t/) ? "\t" : "," if $d eq "";
+
+        # A quoted field can hold a newline, so keep reading until the quotes
+        # pair up, folding the break into a space
+        if ($d ne "\t") {
+            while (($line =~ tr/"//) % 2 && defined(my $more = <>)) {
+                $more =~ s/\r?\n\z//;
+                $line .= " " . $more;
+            }
+        }
+
+        my @f;
+        if ($d eq "\t") {
+            @f = split /\t/, $line, -1;
+        } else {
+            @f = parse_line(quotemeta($d), 0, $line);
+            # parse_line gives back nothing if the quotes are unbalanced
+            @f = split /\Q$d\E/, $line, -1 unless @f;
+        }
+
+        push @rows, [map { defined $_ ? $_ : "" } @f];
+        last if $max > 0 && @rows >= $max;
+    }
+    exit 0 unless @rows;
+
+    # Flatten any newlines inside quoted fields, then cut what is too long
+    for my $row (@rows) {
+        for my $cell (@$row) {
+            $cell =~ s/\s+/ /g;
+            $cell = substr($cell, 0, $w - 1) . "\x{2026}" if length($cell) > $w;
+        }
+    }
+
+    my @wid;
+    for my $row (@rows) {
+        for my $i (0 .. $#{$row}) {
+            my $len = length $row->[$i];
+            $wid[$i] = $len if !defined $wid[$i] || $len > $wid[$i];
+        }
+    }
+
+    my $sep = "  ";
+    for my $r (0 .. $#rows) {
+        my $row = $rows[$r];
+        my $out = join $sep, map {
+            sprintf "%-*s", $wid[$_], defined $row->[$_] ? $row->[$_] : ""
+        } 0 .. $#wid;
+        $out =~ s/\s+\z//;
+        print "$out\n";
+        # Rule under the header row
+        print join($sep, map { "-" x $wid[$_] } 0 .. $#wid), "\n" if $r == 0;
+    }
+'
+
+if [ -t 1 ]; then
+    delim="$delim" maxlines="$maxlines" width="$width" \
+        perl -CSD -e "$prog" "$@" | less -SFX
+else
+    delim="$delim" maxlines="$maxlines" width="$width" \
+        exec perl -CSD -e "$prog" "$@"
+fi

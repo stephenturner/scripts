@@ -6,6 +6,14 @@ set -f
 # Spells out its arguments in the NATO phonetic alphabet, one word per line.
 # Characters outside the table (punctuation, accents) are printed as-is.
 
+# Print help if no arguments
+help='Spells out its arguments in the NATO phonetic alphabet'
+usage="Usage: $0 <words>"
+if [ $# -eq 0 ]; then
+    printf '\n%s\n%s\n\n' "$help" "$usage"
+    exit 0
+fi
+
 chars=abcdefghijklmnopqrstuvwxyz0123456789
 words=(
   Alfa Bravo Charlie Delta Echo Foxtrot Golf Hotel India Juliett

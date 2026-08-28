@@ -7,5 +7,26 @@ set -u
 # With no file arguments it reads stdin, so `history | line 42` works.
 # Several files are treated as one stream, not one line from each.
 
+# Print help if no arguments
+help='Prints a single numbered line from a file or stdin'
+usage="Usage: $0 <line number> [files]"
+if [ $# -eq 0 ]; then
+    printf '\n%s\n%s\n\n' "$help" "$usage"
+    exit 0
+fi
+
+case "$1" in
+    ''|*[!0-9]*)
+        echo "$0: '$1' is not a line number" >&2
+        echo "$usage" >&2
+        exit 1
+        ;;
+esac
+
+if [ "$1" -eq 0 ]; then
+    echo "$0: line numbers start at 1" >&2
+    exit 1
+fi
+
 lineno="$1"; shift
 sed -n "${lineno}p" "$@"

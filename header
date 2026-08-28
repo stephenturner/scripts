@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -e
+set -u
+
+# Prints a delimited file's header row, one numbered column per line. E.g.:
+# $ header samples.csv
+#  1  sample_id
+#  2  age
+# The delimiter is guessed from the first line: a tab if there's one in it,
+# otherwise a comma. Pass -d to say which (-d ';' or -d $'\t').
+# Quoted CSV fields are unquoted. With no file arguments it reads stdin,
+# so `head -1 big.tsv | header` works. Several files are treated as one
+# stream, so only the first file's header is printed.
+
+help="Prints a delimited file's header row, one numbered column per line"
+usage="Usage: $0 [-d delimiter] [file]"
+
+delim=''
+
+while getopts ':d:h' opt; do
+    case "$opt" in
+        d) delim="$OPTARG" ;;
+        h) printf '\n%s\n%s\n\n' "$help" "$usage"; exit 0 ;;
+        *) echo "$usage" >&2; exit 1 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+# No file and nothing piped in: say what this does rather than hang on stdin
+if [ $# -eq 0 ] && [ -t 0 ]; then
+    printf '\n%s\n%s\n\n' "$help" "$usage"
+    exit 0
+fi
+
+delim="$delim" exec perl -CSD -MText::ParseWords -e '
+    my $line = <>;
+    exit 0 unless defined $line;
+    $line =~ s/^\x{feff}//;
+    $line =~ s/\r?\n\z//;
+
+    my $d = $ENV{delim};
+    $d = ($line =~ /\t/) ? "\t" : "," if $d eq "";
+
+    # A quoted field can hold a newline, so keep reading until the quotes pair up
+    if ($d ne "\t") {
+        while (($line =~ tr/"//) % 2 && defined(my $more = <>)) {
+            $more =~ s/\r?\n\z//;
+            $line .= " " . $more;
+        }
+    }
+
+    my @f;
+    if ($d eq "\t") {
+        @f = split /\t/, $line, -1;
+    } else {
+        @f = parse_line(quotemeta($d), 0, $line);
+        # parse_line gives back nothing if the quotes are unbalanced
+        @f = split /\Q$d\E/, $line, -1 unless @f;
+    }
+
+    my $w = length scalar @f;
+    for my $i (0 .. $#f) {
+        my $name = defined $f[$i] ? $f[$i] : "";
+        $name =~ s/^\s+|\s+\z//g;
+        printf "%*d  %s\n", $w, $i + 1, $name;
+    }
+' "$@"
