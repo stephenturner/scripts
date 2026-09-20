@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+# Turns a short video into a looping gif with a per-video palette, so colors
+# hold up better than ffmpeg's default 256-color dither. E.g.:
+# $ togif clip.mp4
+# $ togif clip.mp4 high
+# Output is the input's name with .gif in place of its extension, next to the
+# original. Gifs get big fast: anything over 10 seconds gets a warning and
+# anything over 20 is refused.
+
+help='Converts a short video into a looping gif'
+usage="Usage: $0 <video> [low|medium|high]
+  low     10 fps, 320 px wide
+  medium  15 fps, 480 px wide (default)
+  high    24 fps, 720 px wide"
+
+warn_seconds=10
+max_seconds=20
+
+if [ $# -eq 0 ]; then
+    printf '\n%s\n%s\n\n' "$help" "$usage"
+    exit 0
+fi
+
+for cmd in ffmpeg ffprobe; do
+    if ! hash "$cmd" 2>/dev/null; then
+        echo "$0: $cmd is not on your PATH" >&2
+        exit 1
+    fi
+done
+
+f="$1"
+quality="${2:-medium}"
+
+case "$quality" in
+    low)    fps=10; width=320 ;;
+    medium) fps=15; width=480 ;;
+    high)   fps=24; width=720 ;;
+    *)
+        echo "$0: '$quality' is not a quality level" >&2
+        echo "$usage" >&2
+        exit 1
+        ;;
+esac
+
+if [ ! -f "$f" ]; then
+    echo "$f: not a regular file" >&2
+    exit 1
+fi
+
+out="${f%.*}.gif"
+
+if [ "$out" = "$f" ]; then
+    echo "$f: already a gif" >&2
+    exit 1
+fi
+
+if [ -e "$out" ]; then
+    echo "$out: already exists, not overwriting" >&2
+    exit 1
+fi
+
+duration=$(ffprobe -v error -show_entries format=duration \
+    -of default=noprint_wrappers=1:nokey=1 "$f")
+duration=$(printf "%.1f" "$duration")
+seconds=${duration%.*}
+
+if [ "$seconds" -gt "$max_seconds" ]; then
+    echo "$f: ${duration}s long; gifs over ${max_seconds}s are too big to be worth it. Trim it first:" >&2
+    echo "  ffmpeg -i \"$f\" -ss 0 -t $max_seconds trimmed.mp4" >&2
+    exit 1
+elif [ "$seconds" -gt "$warn_seconds" ]; then
+    echo "warning: $f is ${duration}s long; expect a large gif" >&2
+fi
+
+echo "$f -> $out ($quality: $fps fps, $width px wide)"
+
+# One palette for the whole clip: split the stream, build the palette from one
+# copy, then quantize the other copy against it. -1 keeps the aspect ratio.
+if ! ffmpeg -nostdin -hide_banner -loglevel error \
+    -i "$f" \
+    -vf "fps=$fps,scale=$width:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" \
+    -loop 0 \
+    "$out"
+then
+    echo "$f: ffmpeg failed" >&2
+    rm -f "$out"
+    exit 1
+fi
+
+ls -lh "$out" | awk '{print $5, $9}'
