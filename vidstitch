@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+# Joins an intro, a main clip and an outro into one video, with a short
+# crossfade at each join and every clip brought to the same loudness. E.g.:
+# $ vidstitch intro.mp4 talk.mov outro.mp4 final.mp4
+# The output takes the intro's resolution and frame rate; the other clips are
+# scaled to fit and letterboxed if their shape differs. Loudness is measured
+# per clip and corrected in a second pass, so a quiet talk and a loud intro
+# end up matched.
+
+help='Joins intro, main and outro clips with crossfades and even volume'
+usage="Usage: $0 <intro> <main> <outro> <output> [fade seconds]
+  fade seconds  length of each crossfade (default 0.25)
+  LUFS=-16      set before the command to change the loudness target
+                (default -14, what YouTube normalizes to)"
+
+if [ $# -eq 0 ]; then
+    printf '\n%s\n%s\n\n' "$help" "$usage"
+    exit 0
+fi
+
+if [ $# -lt 4 ] || [ $# -gt 5 ]; then
+    echo "$0: expected 4 or 5 arguments, got $#" >&2
+    echo "$usage" >&2
+    exit 1
+fi
+
+for cmd in ffmpeg ffprobe; do
+    if ! hash "$cmd" 2>/dev/null; then
+        echo "$0: $cmd is not on your PATH" >&2
+        exit 1
+    fi
+done
+
+# Some ffmpeg builds leave out libx264, and xfade needs ffmpeg 4.3 or later
+filters=$(ffmpeg -hide_banner -filters 2>/dev/null)
+for f in xfade acrossfade loudnorm; do
+    if ! grep -qw "$f" <<< "$filters"; then
+        echo "$0: this ffmpeg has no $f filter (try a newer build)" >&2
+        exit 1
+    fi
+done
+if ! grep -qw libx264 <<< "$(ffmpeg -hide_banner -encoders 2>/dev/null)"; then
+    echo "$0: this ffmpeg was built without libx264" >&2
+    exit 1
+fi
+
+intro=$1 main=$2 outro=$3 out=$4 fade=${5:-0.25}
+
+if ! [[ "$fade" =~ ^[0-9]*\.?[0-9]+$ ]]; then
+    echo "$0: '$fade' is not a number of seconds" >&2
+    exit 1
+fi
+
+# Every clip needs both a picture and a sound track, or the crossfades fail
+for f in "$intro" "$main" "$outro"; do
+    if [ ! -f "$f" ]; then
+        echo "$f: not a regular file" >&2
+        exit 1
+    fi
+    if [ "$f" -ef "$out" ]; then
+        echo "$f: output would overwrite this input" >&2
+        exit 1
+    fi
+    for s in v a; do
+        if [ -z "$(ffprobe -v error -select_streams "$s:0" -show_entries stream=index -of csv=p=0 "$f")" ]; then
+            [ "$s" = v ] && kind=video || kind=audio
+            echo "$f: has no $kind track" >&2
+            exit 1
+        fi
+    done
+done
+
+lufs=${LUFS:--14} tp=-1.5 lra=11
+
+# Video stream duration (falls back to container duration if the stream doesn't report one)
+vdur() {
+  local d
+  d=$(ffprobe -v error -select_streams v:0 -show_entries stream=duration -of csv=p=0 "$1")
+  if [ -z "$d" ] || [ "$d" = "N/A" ]; then
+    d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$1")
+  fi
+  echo "$d"
+}
+
+# Two-pass loudnorm: measure the clip, then return a filter that applies the measured values
+lnorm() {
+  local stats
+  stats=$(ffmpeg -hide_banner -nostats -i "$1" -vn \
+    -af "loudnorm=I=${lufs}:TP=${tp}:LRA=${lra}:print_format=json" -f null - 2>&1 |
+    sed -n '/^{/,/^}/p')
+  get() { echo "$stats" | sed -n "s/.*\"$1\" : \"\(.*\)\".*/\1/p"; }
+  echo "loudnorm=I=${lufs}:TP=${tp}:LRA=${lra}:measured_I=$(get input_i):measured_TP=$(get input_tp):measured_LRA=$(get input_lra):measured_thresh=$(get input_thresh):offset=$(get target_offset):linear=true"
+}
+
+# Match everything to the intro's resolution and frame rate
+w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$intro")
+h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$intro")
+fps=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$intro")
+
+d_intro=$(vdur "$intro")
+d_main=$(vdur "$main")
+
+off1=$(awk -v a="$d_intro" -v f="$fade" 'BEGIN { printf "%.3f", a - f }')
+off2=$(awk -v o="$off1" -v m="$d_main" -v f="$fade" 'BEGIN { printf "%.3f", o + m - f }')
+
+echo "intro ${d_intro}s, main ${d_main}s, fade ${fade}s -> offsets $off1, $off2 (${w}x${h} @ $fps)"
+
+norm="scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2,fps=${fps},format=yuv420p,setsar=1,settb=AVTB"
+anorm="aresample=44100,aformat=sample_rates=44100:channel_layouts=stereo"
+
+echo "measuring loudness (target ${lufs} LUFS)..."
+ln0=$(lnorm "$intro")
+ln1=$(lnorm "$main")
+ln2=$(lnorm "$outro")
+
+ffmpeg -hide_banner -y -i "$intro" -i "$main" -i "$outro" -filter_complex "
+[0:v]${norm}[v0];
+[1:v]${norm}[v1];
+[2:v]${norm}[v2];
+[0:a]${ln0},${anorm}[a0];
+[1:a]${ln1},${anorm}[a1];
+[2:a]${ln2},${anorm}[a2];
+[v0][v1]xfade=transition=fade:duration=${fade}:offset=${off1}[v01];
+[v01][v2]xfade=transition=fade:duration=${fade}:offset=${off2}[v];
+[a0][a1]acrossfade=d=${fade}[a01];
+[a01][a2]acrossfade=d=${fade}[a]" \
+  -map "[v]" -map "[a]" -c:v libx264 -crf 18 -preset medium \
+  -c:a aac -b:a 192k -movflags +faststart "$out"

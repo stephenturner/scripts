@@ -26,11 +26,12 @@ Small command-line utilities I use, plus a few [Raycast](https://www.raycast.com
 | `tomp3` | Extracts mono, podcast-quality mp3 audio from video files (`tomp3 *.mp4`) |
 | `togif` | Converts a short video into a looping gif at low, medium or high quality (`togif clip.mp4 high`); warns past 10 seconds and refuses past 20 |
 | `trash` | Moves files to the trash instead of deleting them permanently |
+| `vidstitch` | Joins an intro, main clip and outro with short crossfades and evens out their volume (`vidstitch intro.mp4 talk.mov outro.mp4 final.mp4`) |
 | `ytdl` | Downloads video from YouTube (or anywhere yt-dlp supports) as widely playable h264/m4a mp4; `--subs` embeds English subtitles |
 
 Put this directory on your `PATH`, or symlink individual scripts somewhere that already is.
 
-Most of these need nothing beyond what macOS ships with. `getpod` and `ytdl` need [yt-dlp](https://github.com/yt-dlp/yt-dlp), `tomp3`, `togif` and `mkcountdown` need [ffmpeg](https://ffmpeg.org), and `extract` calls `unrar`, `7z` or `cabextract` when it runs into those formats.
+Most of these need nothing beyond what macOS ships with. `getpod` and `ytdl` need [yt-dlp](https://github.com/yt-dlp/yt-dlp), `tomp3`, `togif`, `vidstitch` and `mkcountdown` need [ffmpeg](https://ffmpeg.org), and `extract` calls `unrar`, `7z` or `cabextract` when it runs into those formats.
 
 ## Raycast scripts
 
