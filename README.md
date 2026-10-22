@@ -23,6 +23,7 @@ Small command-line utilities I use, plus a few [Raycast](https://www.raycast.com
 | `path` | Prints the full path of its arguments |
 | `peek` | Lines up a CSV or TSV into readable columns and pages through it with long lines cut off |
 | `rename` | Renames files with a Perl expression (Robin Barker's `rename`) |
+| `serve` | Serves a directory on localhost only and opens it in the browser (`serve site/ 9000`; defaults to the current directory on port 8000) |
 | `tomp3` | Extracts mono, podcast-quality mp3 audio from video files (`tomp3 *.mp4`) |
 | `togif` | Converts a short video into a looping gif at low, medium or high quality (`togif clip.mp4 high`); warns past 10 seconds and refuses past 20 |
 | `trash` | Moves files to the trash instead of deleting them permanently |

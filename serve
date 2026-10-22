@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+# Serves a directory over HTTP and opens it in the browser. E.g.:
+# $ serve site/ 9000
+# Both arguments are optional and can come in either order: a number is the
+# port (default 8000), anything else is the directory (default the current
+# one). The server only listens on 127.0.0.1, so nothing on the network can
+# see the files. Ctrl-C stops it.
+
+help='Serves a directory on localhost and opens it in the browser'
+usage="Usage: $0 [directory] [port]"
+
+port=8000
+dir=.
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help)
+            printf '\n%s\n%s\n\n' "$help" "$usage"
+            exit 0
+            ;;
+        ''|*[!0-9]*) dir="$arg" ;;
+        *) port="$arg" ;;
+    esac
+done
+
+if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+    echo "$0: '$port' is not a valid port" >&2
+    exit 1
+fi
+
+if [ ! -d "$dir" ]; then
+    echo "$0: '$dir' is not a directory" >&2
+    exit 1
+fi
+
+# Otherwise the readiness check below would succeed against whatever is
+# already there and open the wrong thing
+if nc -z 127.0.0.1 "$port" 2>/dev/null; then
+    echo "$0: something is already listening on port $port" >&2
+    exit 1
+fi
+
+python3 -m http.server "$port" --bind 127.0.0.1 --directory "$dir" &
+pid=$!
+trap 'kill "$pid" 2>/dev/null' EXIT
+
+# Give the server five seconds to come up before giving up
+tries=0
+until curl -fsS -o /dev/null "http://127.0.0.1:$port/" 2>/dev/null; do
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "$0: server failed to start" >&2
+        exit 1
+    fi
+    tries=$((tries + 1))
+    if [ "$tries" -ge 50 ]; then
+        echo "$0: server did not respond on port $port" >&2
+        exit 1
+    fi
+    sleep 0.1
+done
+
+url="http://localhost:$port/"
+if [[ "$(uname)" == 'Darwin' ]]; then
+    open "$url"
+else
+    xdg-open "$url" >/dev/null 2>&1 || echo "Open $url in your browser"
+fi
+
+wait "$pid"
